@@ -4,9 +4,26 @@ const fs = require('fs');
 const request = require('request');
 
 const {API_KEY, API_SECRET, CLOUD_NAME} = require('./cloudinaryApiKeys');
-console.log(API_KEY, API_SECRET, CLOUD_NAME);
-const list_url = 'https://' + API_KEY + ':' + API_SECRET + '@api.cloudinary.com/v1_1/' + CLOUD_NAME + '/resources/image?max_results=500';
-console.log(list_url);
+// console.log(API_KEY, API_SECRET, CLOUD_NAME);
+const base_url = 'https://' + API_KEY + ':' + API_SECRET + '@api.cloudinary.com/v1_1/' + CLOUD_NAME + '/resources/image?max_results=500';
+// console.log(base_url);
+
+const downloadImage = (uri, filename) => {
+  request.head(uri, function(err, res, body){
+    request(uri).pipe(
+      fs.createWriteStream('./downloads/' + filename)
+    ).on('close', () => console.log('downloaded', filename));
+  });
+};
+
+const downloadImages = (resources) => {
+  console.log('number of images in list:', resources.length);
+  for (const img of resources) {
+    const {url, secure_url, public_id, format} = img;
+    const filename = public_id.replace(/\//g, '_') + '.' + format;
+    // downloadImage(url, filename);
+  }
+}
 
 const getImageList = (url) => {
   return new Promise((resolve, reject) => {
@@ -15,12 +32,10 @@ const getImageList = (url) => {
     https.get(url, (resp) => {
       let data = '';
 
-      // A chunk of data has been recieved.
       resp.on('data', (chunk) => {
         data += chunk;
       });
 
-      // The whole response has been received. Print out the result.
       resp.on('end', () => {
         resolve(data);
       });
@@ -31,25 +46,16 @@ const getImageList = (url) => {
   });
 };
 
-const downloadImage = (uri, filename) => {
-  request.head(uri, function(err, res, body){
-    request(uri).pipe(
-      fs.createWriteStream('./downloads/' + filename)
-    ).on('close', () => console.log('downloaded', filename));
-  });
-};
-
-const downloadImages = (data) => {
+const getImageLists = async (url) => {
+  const data = await getImageList(url);
   const {resources, next_cursor = null} = JSON.parse(data);
-  console.log(resources.length, next_cursor);
-
-  for (const img of resources) {
-    const {url, secure_url, public_id, format} = img;
-    const filename = public_id.replace(/\//g, '_') + '.' + format;
-    downloadImage(url, filename);
+  downloadImages(resources)
+  // console.log('next list:', next_cursor);
+  if (next_cursor) {
+    const next_url = base_url + '&next_cursor=' + next_cursor;
+    // console.log('next_url:', next_url);
+    getImageLists(next_url);
   }
 }
 
-(async (url) => {  
-  downloadImages(await getImageList(url))
-})(list_url);
+(getImageLists(base_url));
