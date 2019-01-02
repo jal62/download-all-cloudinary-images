@@ -31,12 +31,11 @@ const getImageList = (url) => {
   });
 };
 
-const downloadImage = (uri, filename, callback) => {
+const downloadImage = (uri, filename) => {
   request.head(uri, function(err, res, body){
-    console.log('content-type:', res.headers['content-type']);
-    console.log('content-length:', res.headers['content-length']);
-
-    request(uri).pipe(fs.createWriteStream('./downloads/' + filename)).on('close', callback);
+    request(uri).pipe(
+      fs.createWriteStream('./downloads/' + filename)
+    ).on('close', () => console.log('downloaded', filename));
   });
 };
 
@@ -47,9 +46,7 @@ const downloadImages = (data) => {
   for (const img of resources) {
     const {url, secure_url, public_id, format} = img;
     const filename = public_id.replace(/\//g, '_') + '.' + format;
-    downloadImage(url, filename, function() {
-      console.log('image', filename, 'saved');
-    });
+    downloadImage(url, filename);
   }
 }
 
