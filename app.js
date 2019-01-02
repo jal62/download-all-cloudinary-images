@@ -5,22 +5,22 @@ const request = require('request');
 
 const {API_KEY, API_SECRET, CLOUD_NAME} = require('./cloudinaryApiKeys');
 console.log("If these are displayed as ****, update file cloudinaryApiKeys.js.", API_KEY, API_SECRET, CLOUD_NAME);
-const base_url = 'https://' + API_KEY + ':' + API_SECRET + '@api.cloudinary.com/v1_1/' + CLOUD_NAME + '/resources/image?max_results=500';
+const base_url = 'https://' + API_KEY + ':' + API_SECRET + '@api.cloudinary.com/v1_1/' + CLOUD_NAME + '/resources/image?max_results=5';
 
-const downloadImage = (uri, filename) => {
-  request.head(uri, function(err, res, body){
-    request(uri).pipe(
+const downloadImage = (img) => {
+  const {url, secure_url, public_id, format} = img;
+  const filename = public_id.replace(/\//g, '_') + '.' + format;
+  request.head(url, function(err, res, body){
+    request(url).pipe(
       fs.createWriteStream('./downloads/' + filename)
     ).on('close', () => console.log('downloaded', filename));
   });
 };
 
-const downloadImages = async (list) => {
-  console.log('number of images in list:', list.length);
+const downloadImages = (list) => {
+  console.log('Total number of images ids in list:', list.length, list);
   for (const img of list) {
-    const {url, secure_url, public_id, format} = img;
-    const filename = public_id.replace(/\//g, '_') + '.' + format;
-    await downloadImage(url, filename);
+    downloadImage(img)
   }
 }
 
@@ -46,16 +46,14 @@ const getImageList = (url) => {
 };
 
 const getImageLists = async (url, list = []) => {
-  console.log('in getImageLists', list.length)
   const data = await getImageList(url);
   const {resources, next_cursor = null} = JSON.parse(data);
-  list = [...resources, ...list]
-  if (next_cursor) {
-    console.log('in getImageLists, if next_cursor', next_cursor, list.length)
+  list = [...list, ...resources]
+  if (!next_cursor) {
+    console.log('fetched', list.length, 'image ids');
     const next_url = base_url + '&next_cursor=' + next_cursor;
     getImageLists(next_url, list);
   } else {
-    console.log('in getImageLists, if not next_cursor', next_cursor, list.length)
     downloadImages(list)
   }
 }
