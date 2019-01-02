@@ -52,8 +52,8 @@ const getImageLists = async (url, list = []) => {
   const data = await getImageList(url);
   const {resources, next_cursor = null} = JSON.parse(data);
   list = [...list, ...resources]
+  console.log('fetched', list.length, 'image ids');
   if (next_cursor) {
-    console.log('fetched', list.length, 'image ids');
     const next_url = base_url + '&next_cursor=' + next_cursor;
     getImageLists(next_url, list);
   } else {
