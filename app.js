@@ -1,9 +1,13 @@
 'use strict'
 
+const fs = require('fs');
+const request = require('request');
+
 const {API_KEY, API_SECRET, CLOUD_NAME} = require('./cloudinaryApiKeys');
 console.log(API_KEY, API_SECRET, CLOUD_NAME);
-const url = 'https://' + API_KEY + ':' + API_SECRET + '@api.cloudinary.com/v1_1/' + CLOUD_NAME + '/resources/image?max_results=500';
-console.log(url);
+const list_url = 'https://' + API_KEY + ':' + API_SECRET + '@api.cloudinary.com/v1_1/' + CLOUD_NAME + '/resources/image?max_results=500';
+console.log(list_url);
+
 const getImageList = (url) => {
   return new Promise((resolve, reject) => {
     const https = require('https');
@@ -27,8 +31,28 @@ const getImageList = (url) => {
   });
 };
 
+const downloadImage = (uri, filename, callback) => {
+  request.head(uri, function(err, res, body){
+    console.log('content-type:', res.headers['content-type']);
+    console.log('content-length:', res.headers['content-length']);
+
+    request(uri).pipe(fs.createWriteStream('./downloads/' + filename)).on('close', callback);
+  });
+};
+
+const downloadImages = (data) => {
+  const {resources, next_cursor = null} = JSON.parse(data);
+  console.log(resources.length, next_cursor);
+
+  for (const img of resources) {
+    const {url, secure_url, public_id, format} = img;
+    const filename = public_id.replace(/\//g, '_') + '.' + format;
+    downloadImage(url, filename, function() {
+      console.log('image', filename, 'saved');
+    });
+  }
+}
+
 (async (url) => {  
-  let data = await getImageList(url)
-  data = JSON.parse(data)
-  console.log(data.resources.length);
-})(url);
+  downloadImages(await getImageList(url))
+})(list_url);

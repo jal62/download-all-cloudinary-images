@@ -19,5 +19,8 @@
   "bugs": {
     "url": "https://github.com/kris-larsson/download-all-cloudinary-images/issues"
   },
-  "homepage": "https://github.com/kris-larsson/download-all-cloudinary-images#readme"
+  "homepage": "https://github.com/kris-larsson/download-all-cloudinary-images#readme",
+  "dependencies": {
+    "request": "^2.88.0"
+  }
 }
